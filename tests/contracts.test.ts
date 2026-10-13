@@ -46,7 +46,7 @@ it('declares the documented Node floor and tests it with the tracked package man
   const pkg = JSON.parse(read('package.json'));
   expect(pkg.engines.node).toBe('^22.19.0 || >=24.0.0');
   expect(read('README.md')).toContain('**22.19+ or 24+**');
-  expect(pkg.packageManager).toBe('pnpm@11.26.0');
+  expect(pkg.packageManager).toBe('pnpm@12.11.2');
   const ci = read('.github/workflows/ci.yml');
   expect(ci).toContain("node: ['22', '24', '26']");
   expect(ci).toContain('pnpm install --frozen-lockfile');
