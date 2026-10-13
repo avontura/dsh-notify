@@ -29,7 +29,7 @@
     "README.md",
     "LICENSE"
   ],
-  "packageManager": "pnpm@11.26.0",
+  "packageManager": "pnpm@12.11.2",
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
@@ -82,9 +82,9 @@
     "@deepseek-ai/dsh-session-title": "0.2.0-rc.2",
     "@deepseek-ai/dsh-user-approval": "0.2.0-rc.2",
     "@deepseek-ai/dsh-util-code-language": "0.2.0-rc.2",
-    "@playwright/test": "^1.63.0",
-    "@shikijs/langs": "^4.4.3",
-    "@types/node": "^24.19.0",
+    "@playwright/test": "^1.64.0",
+    "@shikijs/langs": "^4.5.0",
+    "@types/node": "^24.19.2",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "anser": "^2.3.5",
@@ -93,7 +93,7 @@
     "esbuild": "^0.28.2",
     "immer": "^10.2.0",
     "katex": "^0.16.47",
-    "mdast-util-from-markdown": "^2.0.3",
+    "mdast-util-from-markdown": "^2.1.0",
     "mdast-util-gfm": "^3.1.0",
     "mdast-util-math": "^3.0.0",
     "micromark-core-commonmark": "^2.0.4",
@@ -107,10 +107,10 @@
     "micromark-util-types": "^2.0.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "shiki": "^4.4.3",
-    "simple-icons": "16.33.0",
+    "shiki": "^4.5.0",
+    "simple-icons": "16.35.0",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.2",
+    "vitest": "^5.0.4",
     "zustand": "~4.4.7"
   },
   "allowScripts": {
