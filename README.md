@@ -6,7 +6,7 @@ Browser notifications appear on the computer viewing DSH, even when DSH runs on 
 
 ## Requirements
 
-- DeepSeek Harness with the **0.2.0-rc.2 API**.
+- DeepSeek Harness with the **0.2.1-rc.5 API**.
 - Node.js **22.19+ or 24+**.
 - For browser notifications: a desktop browser supporting Notifications, Web Locks, and EventSource, using HTTPS or HTTP on localhost.
 - For Slack notifications: a Slack incoming webhook URL.
@@ -129,7 +129,7 @@ Settings controls use `Button`, `Input`, and `Switch` from DSH's shared UI primi
 
 The primitives package and its browser build dependencies are development-only: Playwright bundles the real components and their CSS for testing. The shipped plugin keeps the primitives import external and uses DSH's installed components and theme.
 
-Install development dependencies with `pnpm install --frozen-lockfile` (pnpm 12.11.2). Run `pnpm run check` and `pnpm run test:browser` before shipping changes. CI runs both checks on Node 22, 24, and 26, and verifies that rebuilding leaves `dist` unchanged.
+Install development dependencies with `pnpm install --frozen-lockfile` (pnpm 12.16.1). Run `pnpm run check` and `pnpm run test:browser` before shipping changes. CI runs both checks on Node 22, 24, and 26, and verifies that rebuilding leaves `dist` unchanged.
 
 ## License
 
