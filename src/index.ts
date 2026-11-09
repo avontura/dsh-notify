@@ -82,7 +82,7 @@ export async function apply(ctx: Context, config: PluginConfig = {}): Promise<vo
   }, 'dsh-notify: deliveries');
   ctx.inject(['webServer', 'connection'], web => {
     if (typeof web.connection.requestRejection !== 'function') {
-      console.warn('[dsh-notify] Browser delivery requires DSH Connection.requestRejection (tested with 0.2.1-rc.5).'); return;
+      console.warn('[dsh-notify] Browser delivery requires DSH Connection.requestRejection (tested with 0.2.2-rc.1).'); return;
     }
     web.effect(() => registerApi(web.webServer, web.connection, store, stream, queue), 'dsh-notify: authenticated API');
   });
