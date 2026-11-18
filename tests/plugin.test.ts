@@ -17,7 +17,7 @@ it.each(['before', 'after'])('notifies questions when the answering handler is r
   const answerer = vi.fn(async () => answer);
   const fallback = vi.fn(async () => 'unhandled');
   ctx.reflect.provide('sessions', {} as any);
-  ctx.reflect.provide('agents', { get: () => root, roots: () => [root] } as any);
+  ctx.reflect.provide('agents', { get: () => root } as any);
   try {
     if (order === 'before') ctx.on('user-questions/request', answerer);
     await ctx.plugin(plugin, { dataDir: f.dir });
@@ -36,12 +36,11 @@ it('runs in Cordis, filters subagents, delivers approvals immediately and flushe
   const f = await fixture(false); const ctx = new Context();
   const fetcher = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Offline test'));
   const root = { id: 'root', status: 'running' }, child = { id: 'child', status: 'running' };
-  let roots = [root];
   ctx.reflect.provide('sessions', {} as any);
-  ctx.reflect.provide('agents', { get: (id: string) => id === 'root' ? root : child, roots: () => roots } as any);
+  ctx.reflect.provide('agents', { get: (id: string) => id === 'root' ? root : child, } as any);
   const fiber = await ctx.plugin(plugin, { dataDir: f.dir });
   try {
-    const sessionEvent = (id: string, type: string, data: object) => ctx.parallel('session/event', { id, header: { cwd: '/work/project' }, requestHeader: () => ({ config: { provider: 'p', model: 'm', reasoningEffort: 'high' } }) } as any, { type, time: Date.now(), data, ...(type === 'user/message' ? { surfaceOp: 'append' } : {}) } as any);
+    const sessionEvent = (id: string, type: string, data: object) => ctx.parallel('session/event', { id, header: { cwd: '/work/project', ...(id === 'child' ? { origin: 'subagent' } : {}) }, requestHeader: () => ({ config: { provider: 'p', model: 'm', reasoningEffort: 'high' } }) } as any, { type, time: Date.now(), data, ...(type === 'user/message' ? { surfaceOp: 'append' } : {}) } as any);
     await sessionEvent('root', 'turn/start', { turn: 1 });
     await sessionEvent('root', 'user/message', { source: { kind: 'user' }, content: [{ type: 'text', text: 'Fix the bug' }] });
     await sessionEvent('root', 'assistant/message', { turn: 1, step: 1, message: { source: { kind: 'model', provider: 'p', model: 'm' }, content: [] }, usage: { inputTokens: 10, outputTokens: 2, totalTokens: 12 } });
@@ -60,7 +59,6 @@ it('runs in Cordis, filters subagents, delivers approvals immediately and flushe
     root.status = 'running';
     await sessionEvent('root', 'turn/start', { turn: 2 });
     await sessionEvent('root', 'turn/end', { turn: 2, reason: { kind: 'error' } });
-    roots = [];
     await ctx.parallel('agent/disposed', { agent: root } as any);
     expect((await Store.open(f.dir)).history()[0].notice.kind).toBe('error');
     await fiber.dispose();
@@ -75,7 +73,7 @@ it.each(['idle', 'disposed'])('persists every terminal notice in a burst exactly
   const fetcher = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Offline test'));
   const root = { id: 'root', status: 'running' };
   ctx.reflect.provide('sessions', {} as any);
-  ctx.reflect.provide('agents', { get: () => root, roots: () => [root] } as any);
+  ctx.reflect.provide('agents', { get: () => root } as any);
   await ctx.plugin(plugin, { dataDir: f.dir });
   try {
     for (let turn = 1; turn <= 150; turn++) {
@@ -111,7 +109,7 @@ it.each([false, true])('waits for persistence before publication and drains shut
   const publish = vi.spyOn(BrowserStream.prototype, 'publish');
   const root = { id: 'root', status: 'idle' };
   ctx.reflect.provide('sessions', {} as any);
-  ctx.reflect.provide('agents', { get: () => root, roots: () => [root] } as any);
+  ctx.reflect.provide('agents', { get: () => root } as any);
   const fiber = await ctx.plugin(plugin, { dataDir: f.dir });
   let release!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; });
@@ -146,12 +144,12 @@ it('keeps child failures and questions on Slack while suppressing child completi
   await f.store.update({ revision: settings.revision, settings: { ...settings, notifySubagents: true, slack: { ...settings.slack, notifySubagents: true } } });
   const ctx = new Context();
   const fetcher = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Offline test'));
-  const root = { id: 'root', status: 'idle' }, child = { id: 'child', status: 'idle' };
+  const root = { id: 'root', status: 'idle' }, child = { id: 'child', status: 'idle', session: { header: { origin: 'subagent' } } };
   ctx.reflect.provide('sessions', {} as any);
-  ctx.reflect.provide('agents', { get: (id: string) => id === 'root' ? root : child, roots: () => [root] } as any);
+  ctx.reflect.provide('agents', { get: (id: string) => id === 'root' ? root : child } as any);
   await ctx.plugin(plugin, { dataDir: f.dir });
   try {
-    const end = (id: string, turn: number, kind: string) => ctx.parallel('session/event', { id } as any,
+    const end = (id: string, turn: number, kind: string) => ctx.parallel('session/event', { id, header: id === 'child' ? child.session.header : {} } as any,
       { type: 'turn/end', time: Date.now(), data: { turn, reason: { kind } } } as any);
     await end('child', 1, 'completed');
     await end('child', 2, 'error');
@@ -176,7 +174,7 @@ it('keeps a terminal burst reopenable when host route metadata is invalid', asyn
   const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
   const root = { id: 'root', status: 'running' };
   ctx.reflect.provide('sessions', {} as any);
-  ctx.reflect.provide('agents', { get: () => root, roots: () => [root] } as any);
+  ctx.reflect.provide('agents', { get: () => root } as any);
   await ctx.plugin(plugin, { dataDir: f.dir });
   try {
     const sessionEvent = (type: string, data: object) => ctx.parallel('session/event', { id: 'root' } as any, { type, time: Date.now(), data } as any);

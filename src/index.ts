@@ -17,10 +17,13 @@ import { PricingCache } from './pricing.js';
 import type { Notice } from './types.js';
 import { LIMITS } from './limits.js';
 
+/** DSH marks a session created as a subagent child in its immutable header. */
+const isSubagent = (session: { readonly header?: { readonly origin?: string } } | undefined): boolean => session?.header?.origin === 'subagent';
+
 /** Minimal compatible shape of DSH's question waterfall, without a runtime dependency. */
 declare module '@deepseek-ai/cordis' {
   interface Events {
-    'user-questions/request': (request: { agent?: { id: string }; questions?: { id?: string }[] }, next: () => Promise<unknown>) => Promise<unknown>;
+    'user-questions/request': (request: { agent?: { id: string; session?: { header?: { origin?: string } } }; questions?: { id?: string }[] }, next: () => Promise<unknown>) => Promise<unknown>;
   }
 }
 
@@ -32,7 +35,6 @@ export async function apply(ctx: Context, config: PluginConfig = {}): Promise<vo
   const store = await Store.open(directory, config.baseUrl);
   const pricing = await PricingCache.open(directory);
   const queue = new SlackQueue(store), stream = new BrowserStream(store), gate = new CompletionGate(), normalizer = new EventNormalizer(pricing.estimate);
-  const rootSessions = new Set<string>();
   let stopped = false;
   const emit = async (...notices: Notice[]): Promise<void> => {
     if (!notices.length) return;
@@ -51,16 +53,14 @@ export async function apply(ctx: Context, config: PluginConfig = {}): Promise<vo
     const title = ctx.get('sessionTitle')?.get(session)?.title;
     const notice = normalizer.observe(String(session.id), title, event, store.state.settings.slack.includeSummary, { workspace: session.header?.cwd, config: session.requestHeader?.()?.config });
     if (!notice) return;
-    // Only notice-producing events need root classification.
-    if (ctx.agents.roots().includes(agent)) rootSessions.add(String(agent.id));
-    notice.isSubagent = !rootSessions.has(String(agent.id));
+    notice.isSubagent = isSubagent(session);
     if (notice.kind === 'approval' || agent.status === 'idle') await emit(notice);
     else if (!gate.enqueue(notice)) console.warn('[dsh-notify] Pending terminal notification limit reached; newest notification skipped.');
   });
   ctx.on('user-questions/request', async (request, next) => {
     const sessionId = String(request.agent?.id ?? 'agentless');
     await emit({ id: `${sessionId}:question:${randomUUID()}`, kind: 'question', sessionId,
-      title: `Session ${sessionId}`.slice(0, LIMITS.title), time: Date.now(), isSubagent: !!request.agent && !ctx.agents.roots().some(agent => String(agent.id) === sessionId) });
+      title: `Session ${sessionId}`.slice(0, LIMITS.title), time: Date.now(), isSubagent: !!request.agent && isSubagent(request.agent.session) });
     return next();
   }, { prepend: true });
   ctx.on('agent/status', async ({ agent, status }) => {
@@ -71,7 +71,6 @@ export async function apply(ctx: Context, config: PluginConfig = {}): Promise<vo
     normalizer.forget(String(agent.id));
     // A terminal event may be followed by disposal without another idle transition.
     await emit(...gate.flush(String(agent.id)));
-    rootSessions.delete(String(agent.id));
   });
   ctx.effect(() => {
     queue.start(); pricing.start();
@@ -82,7 +81,7 @@ export async function apply(ctx: Context, config: PluginConfig = {}): Promise<vo
   }, 'dsh-notify: deliveries');
   ctx.inject(['webServer', 'connection'], web => {
     if (typeof web.connection.requestRejection !== 'function') {
-      console.warn('[dsh-notify] Browser delivery requires DSH Connection.requestRejection (tested with 0.2.2-rc.1).'); return;
+      console.warn('[dsh-notify] Browser delivery requires DSH Connection.requestRejection (tested with 0.2.2-rc.4).'); return;
     }
     web.effect(() => registerApi(web.webServer, web.connection, store, stream, queue), 'dsh-notify: authenticated API');
   });
