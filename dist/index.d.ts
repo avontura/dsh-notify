@@ -6,6 +6,11 @@ declare module '@deepseek-ai/cordis' {
         'user-questions/request': (request: {
             agent?: {
                 id: string;
+                session?: {
+                    header?: {
+                        origin?: string;
+                    };
+                };
             };
             questions?: {
                 id?: string;
